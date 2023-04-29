@@ -4,11 +4,13 @@ namespace App;
 class Model
 {
     public String $table;
+    public String $metaTable;
     public array $data;
 
     public function __construct($table, $data)
     {
         $this->table = $table;
+        $this->metaTable = $table . 'meta';
         $this->data = $data;
     }
 
@@ -43,7 +45,28 @@ class Model
     private function getAll($db, $type): mixed
     {
         $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
-        return $db->fetchAll($select, __METHOD__);
+        $data = $db->fetchAll($select, __METHOD__);
+
+        $idsArr = array_map(function ($item) {
+            return $item['id'];
+        }, $data);
+
+        $ids = implode(",", $idsArr);
+
+        $select = "SELECT * FROM $this->metaTable WHERE `post_id` IN ('$ids')";
+        $meta = $db->fetchAll($select, __METHOD__);
+
+        $result = [];
+
+        foreach ($data as $item) {
+            $id = $item['id'];
+            $result[$id] = $item;
+            $result[$id]['meta'] = array_filter($meta, function ($prop) use ($id) {
+                return $prop['post_id'] === $id ? $prop : null;
+            });
+        }
+
+        return $result;
     }
 
     /**
@@ -56,7 +79,12 @@ class Model
     private function getOne($db, $id): mixed
     {
         $select = "SELECT * FROM $this->table WHERE `id` = '$id'";
-        return $db->fetchOne($select, __METHOD__);
+        $data = $db->fetchOne($select, __METHOD__);
+
+        $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$id'";
+        $meta = $db->fetchAll($select, __METHOD__);
+
+        return [...$data, 'meta' => $meta];
     }
 
     /**
