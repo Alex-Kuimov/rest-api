@@ -18,6 +18,8 @@ class Main
     public function makeMagic()
     {
         $this->route->routing();
-        $this->response->get($this->route->getMeta());
+        $data = $this->route->getMeta();
+
+        $this->response->getJSON($data);
     }
 }

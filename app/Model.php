@@ -4,24 +4,25 @@ namespace App;
 class Model
 {
     public String $table;
+    public array $data;
 
-    public function __construct($table)
+    public function __construct($table, $data)
     {
         $this->table = $table;
+        $this->data = $data;
     }
 
     /**
      * Get list
      *
-     * @param $data
      * @return array|null
      */
-    public function get($data): ?array
+    public function get(): ?array
     {
-        $type = $data['type'];
+        $type = $this->data['type'];
 
         $db = Db::getInstance();
-        $select = "SELECT * FROM `$this->table` WHERE type = '$type'";
+        $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
         $data = $db->fetchAll($select, __METHOD__);
 
         if (!$data) {
@@ -34,16 +35,15 @@ class Model
     /**
      * Create
      *
-     * @param $data
      * @return int
      */
-    public function create($data): int
+    public function create(): int
     {
-        $name = $data['content']['name'];
-        $type = $data['type'];
+        $name = $this->data['content']['name'];
+        $type = $this->data['type'];
 
         $db = Db::getInstance();
-        $insert = "INSERT INTO `$this->table` (`name`, `type`) VALUES (:name, :type)";
+        $insert = "INSERT INTO $this->table (`name`, `type`) VALUES (:name, :type)";
 
         $db->exec($insert, __METHOD__, [
             ':name' => $name,
@@ -56,16 +56,15 @@ class Model
     /**
      * Update
      *
-     * @param $data
      * @return int
      */
-    public function update($data): int
+    public function update(): int
     {
-        $id = $data['content']['id'];
-        $name = $data['content']['name'];
+        $id = $this->data['content']['id'];
+        $name = $this->data['content']['name'];
 
         $db = Db::getInstance();
-        $update = "UPDATE `$this->table`  SET `name` = (:name) WHERE id = '$id'";
+        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$id'";
 
         return $db->exec($update, __METHOD__, [
             ':name' => $name,
@@ -75,15 +74,14 @@ class Model
     /**
      * Delete
      *
-     * @param $data
      * @return int
      */
-    public function delete($data): int
+    public function delete(): int
     {
-        $id  = $data['content']['id'];
+        $id  = $this->data['content']['id'];
 
         $db = Db::getInstance();
-        $query = "DELETE FROM `$this->table` WHERE id = '$id'";
+        $query = "DELETE FROM $this->table WHERE `id` = '$id'";
 
         return $db->exec($query, __METHOD__);
     }
