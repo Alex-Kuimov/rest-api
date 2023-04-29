@@ -61,7 +61,7 @@ class Route
      */
     private function getData():array
     {
-        return $_POST;
+        return $this->validator->postData($_POST);
     }
 
     /**
