@@ -13,23 +13,50 @@ class Model
     }
 
     /**
-     * Get list
+     * Get data
      *
      * @return array|null
      */
     public function get(): ?array
     {
         $type = $this->data['type'];
+        $id = $this->data['content']['id'] ?? null;
 
         $db = Db::getInstance();
-        $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
-        $data = $db->fetchAll($select, __METHOD__);
+
+        $data = $id ? $this->getOne($db, $id) : $this->getAll($db, $type);
 
         if (!$data) {
             return null;
         }
 
         return $data;
+    }
+
+    /**
+     * Get all
+     *
+     * @param $db
+     * @param $type
+     * @return mixed
+     */
+    private function getAll($db, $type): mixed
+    {
+        $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
+        return $db->fetchAll($select, __METHOD__);
+    }
+
+    /**
+     * Get one
+     *
+     * @param $db
+     * @param $id
+     * @return mixed
+     */
+    private function getOne($db, $id): mixed
+    {
+        $select = "SELECT * FROM $this->table WHERE `id` = '$id'";
+        return $db->fetchOne($select, __METHOD__);
     }
 
     /**
