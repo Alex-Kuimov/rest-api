@@ -3,15 +3,21 @@ namespace App;
 
 class Model
 {
-    public String $table;
-    public String $metaTable;
-    public array $data;
+    public string $table;
+    public string $metaTable;
+    public ?int $id;
+    public ?string $type;
+    public ?string $name;
+    public ?array $props;
 
     public function __construct($table, $data)
     {
         $this->table = $table;
         $this->metaTable = $table . 'meta';
-        $this->data = $data;
+        $this->id = $data['content']['id'] ?? null;
+        $this->type = $data['type'] ?? null;
+        $this->name = $data['content']['name'] ?? null;
+        $this->props = $data['content']['meta'] ?? null;
     }
 
     /**
@@ -21,12 +27,9 @@ class Model
      */
     public function get(): ?array
     {
-        $type = $this->data['type'];
-        $id = $this->data['content']['id'] ?? null;
-
         $db = Db::getInstance();
 
-        $data = $id ? $this->getOne($db, $id) : $this->getAll($db, $type);
+        $data = $this->id ? $this->getOne($db, $this->id) : $this->getAll($db, $this->type);
 
         if (!$data) {
             return null;
@@ -93,29 +96,25 @@ class Model
      */
     public function create(): string
     {
-        $name = $this->data['content']['name'];
-        $type = $this->data['type'];
-        $props = $this->data['content']['meta'] ?? null;
-
         $db = Db::getInstance();
         $insert = "INSERT INTO $this->table (`name`, `type`) VALUES (:name, :type)";
 
         $db->exec($insert, __METHOD__, [
-            ':name' => $name,
-            ':type' => $type,
+            ':name' => $this->name,
+            ':type' => $this->type,
         ]);
 
-        $postID = intval($db->lastInsertId());
+        $id = intval($db->lastInsertId());
 
-        if (is_null($props)) {
+        if (is_null($this->props)) {
             return 'created without meta';
         }
 
-        foreach ($props as $key => $value) {
+        foreach ($this->props as $key => $value) {
             $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
 
             $db->exec($insert, __METHOD__, [
-                ':post_id' => $postID ,
+                ':post_id' => $id ,
                 ':key' => $key,
                 ':value' => $value,
             ]);
@@ -131,28 +130,24 @@ class Model
      */
     public function update(): string
     {
-        $postID = $this->data['content']['id'];
-        $name = $this->data['content']['name'];
-        $props = $this->data['content']['meta'] ?? null;
-
         $db = Db::getInstance();
 
-        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$postID'";
+        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$this->id'";
 
         $db->exec($update, __METHOD__, [
-            ':name' => $name,
+            ':name' => $this->name,
         ]);
 
-        if (is_null($props)) {
+        if (is_null($this->props)) {
             return 'updated without meta';
         }
 
-        foreach ($props as $key => $value) {
-            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$postID' AND `key` = '$key'";
+        foreach ($this->props as $key => $value) {
+            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$this->id' AND `key` = '$key'";
             $meta = $db->fetchOne($select, __METHOD__);
 
             if ($meta) {
-                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `post_id` = '$postID' AND `key` = '$key'";
+                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `post_id` = '$this->id' AND `key` = '$key'";
 
                 $db->exec($update, __METHOD__, [
                     ':value' => $value,
@@ -161,7 +156,7 @@ class Model
                 $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
 
                 $db->exec($insert, __METHOD__, [
-                    ':post_id' => $postID ,
+                    ':post_id' => $this->id ,
                     ':key' => $key,
                     ':value' => $value,
                 ]);
@@ -178,10 +173,8 @@ class Model
      */
     public function delete(): int
     {
-        $id  = $this->data['content']['id'];
-
         $db = Db::getInstance();
-        $query = "DELETE FROM $this->table WHERE `id` = '$id'";
+        $query = "DELETE FROM $this->table WHERE `id` = '$this->id'";
 
         return $db->exec($query, __METHOD__);
     }
