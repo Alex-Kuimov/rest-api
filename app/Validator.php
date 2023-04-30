@@ -13,15 +13,41 @@ class Validator
         return ['get', 'update', 'create', 'delete'];
     }
 
+    /**
+     * Validate POST data
+     *
+     * @param $items
+     * @return array
+     */
     public function postData($items): array
     {
         $arr = [];
+
         foreach ($items as $key => $item) {
-            $arr[$key] = $this->sanitizeData($item);
+            if ($key === 'method') {
+                continue;
+            }
+
+            if ($key !== 'meta') {
+                $arr[$key] = $this->sanitizeData($item);
+            }
+
+            if ($key === 'meta') {
+                $arr[$key] = array_map(function ($prop) {
+                    return $this->sanitizeData($prop);
+                }, $item);
+            }
         }
+
         return $arr;
     }
 
+    /**
+     * Sanitize data
+     *
+     * @param $str
+     * @return string
+     */
     public function sanitizeData($str): string
     {
         $str = trim($str);

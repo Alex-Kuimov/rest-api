@@ -53,12 +53,13 @@ class Model
             return $post['id'];
         }, $posts));
 
-        $select = "SELECT * FROM $this->metaTable WHERE `post_id` IN ('$ids')";
+        $select = "SELECT `post_id`, `key`, `value` FROM $this->metaTable WHERE `post_id` IN ($ids)";
         $meta = $db->fetchAll($select, __METHOD__);
 
         foreach ($posts as $post) {
             $id = $post['id'];
             $result[$id] = $post;
+
             $result[$id]['meta'] = array_filter($meta, function ($prop) use ($id) {
                 return $prop['post_id'] === $id ? $prop : null;
             });
@@ -88,12 +89,13 @@ class Model
     /**
      * Create
      *
-     * @return int
+     * @return string
      */
-    public function create(): int
+    public function create(): string
     {
         $name = $this->data['content']['name'];
         $type = $this->data['type'];
+        $props = $this->data['content']['meta'] ?? null;
 
         $db = Db::getInstance();
         $insert = "INSERT INTO $this->table (`name`, `type`) VALUES (:name, :type)";
@@ -103,25 +105,70 @@ class Model
             ':type' => $type,
         ]);
 
-        return intval($db->lastInsertId());
+        $postID = intval($db->lastInsertId());
+
+        if (is_null($props)) {
+            return 'created without meta';
+        }
+
+        foreach ($props as $key => $value) {
+            $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
+
+            $db->exec($insert, __METHOD__, [
+                ':post_id' => $postID ,
+                ':key' => $key,
+                ':value' => $value,
+            ]);
+        }
+
+        return 'created with meta';
     }
 
     /**
      * Update
      *
-     * @return int
+     * @return string
      */
-    public function update(): int
+    public function update(): string
     {
-        $id = $this->data['content']['id'];
+        $postID = $this->data['content']['id'];
         $name = $this->data['content']['name'];
+        $props = $this->data['content']['meta'] ?? null;
 
         $db = Db::getInstance();
-        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$id'";
 
-        return $db->exec($update, __METHOD__, [
+        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$postID'";
+
+        $db->exec($update, __METHOD__, [
             ':name' => $name,
         ]);
+
+        if (is_null($props)) {
+            return 'updated without meta';
+        }
+
+        foreach ($props as $key => $value) {
+            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$postID' AND `key` = '$key'";
+            $meta = $db->fetchOne($select, __METHOD__);
+
+            if ($meta) {
+                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `post_id` = '$postID' AND `key` = '$key'";
+
+                $db->exec($update, __METHOD__, [
+                    ':value' => $value,
+                ]);
+            } else {
+                $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
+
+                $db->exec($insert, __METHOD__, [
+                    ':post_id' => $postID ,
+                    ':key' => $key,
+                    ':value' => $value,
+                ]);
+            }
+        }
+
+        return 'updated with meta';
     }
 
     /**
