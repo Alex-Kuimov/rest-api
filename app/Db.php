@@ -51,7 +51,7 @@ class Db
         return $prepared->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function fetchOne(string $query, $_method, array $params = [])
+    public function fetchOne(string $query, array $params = [])
     {
         $prepared = $this->getConnection()->prepare($query);
         $prepared->execute($params);
