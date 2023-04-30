@@ -11,12 +11,36 @@ class Response
     public function getJSON($data)
     {
         $method = $data['method'];
+        $type = $data['type'];
 
-        $post = new Post($data);
+        if (empty($type)) {
+            $this->returnJSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
+            exit();
+        }
 
-        $res = $method ? $post->{$method}() : 'method err';
+        if (empty($method)) {
+            $this->returnJSON('method err');
+            exit();
+        }
 
+        if ($type === 'users') {
+            //
+        }
+
+        if ($type === 'groups') {
+            //
+        }
+
+        if ($type !== 'users') {
+            $post = new Post($data);
+            $this->returnJSON($post->{$method}());
+            exit();
+        }
+    }
+
+    private function returnJSON($data)
+    {
         header('Content-type: application/json');
-        echo json_encode($res, JSON_UNESCAPED_UNICODE);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
     }
 }

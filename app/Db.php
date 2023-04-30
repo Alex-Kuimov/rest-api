@@ -44,33 +44,17 @@ class Db
         return $this->pdo;
     }
 
-    public function fetchAll(string $query, $_method, array $params = [])
+    public function fetchAll(string $query, array $params = [])
     {
         $prepared = $this->getConnection()->prepare($query);
-
-        $ret = $prepared->execute($params);
-
-        if (!$ret) {
-            $errorInfo = $prepared->errorInfo();
-            trigger_error("{$errorInfo[0]}#{$errorInfo[1]}: " . $errorInfo[2]);
-            return [];
-        }
-
+        $prepared->execute($params);
         return $prepared->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function fetchOne(string $query, $_method, array $params = [])
     {
         $prepared = $this->getConnection()->prepare($query);
-
-        $ret = $prepared->execute($params);
-
-        if (!$ret) {
-            $errorInfo = $prepared->errorInfo();
-            trigger_error("{$errorInfo[0]}#{$errorInfo[1]}: " . $errorInfo[2]);
-            return [];
-        }
-
+        $prepared->execute($params);
         $data = $prepared->fetchAll(\PDO::FETCH_ASSOC);
 
         if (!$data) {
@@ -80,19 +64,11 @@ class Db
         return reset($data);
     }
 
-    public function exec(string $query, $_method, array $params = [])
+    public function exec(string $query, array $params = [])
     {
-        $t = microtime(1);
         $pdo = $this->getConnection();
         $prepared = $pdo->prepare($query);
-
-        $ret = $prepared->execute($params);
-
-        if (!$ret) {
-            $errorInfo = $prepared->errorInfo();
-            trigger_error("{$errorInfo[0]}#{$errorInfo[1]}: " . $errorInfo[2]);
-            return -1;
-        }
+        $prepared->execute($params);
 
         return $prepared->rowCount();
     }
