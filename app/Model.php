@@ -44,23 +44,22 @@ class Model
      */
     private function getAll($db, $type): mixed
     {
+        $result = [];
+
         $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
-        $data = $db->fetchAll($select, __METHOD__);
+        $posts = $db->fetchAll($select, __METHOD__);
 
-        $idsArr = array_map(function ($item) {
+        $ids = implode(",", array_map(function ($item) {
             return $item['id'];
-        }, $data);
-
-        $ids = implode(",", $idsArr);
+        }, $posts));
 
         $select = "SELECT * FROM $this->metaTable WHERE `post_id` IN ('$ids')";
         $meta = $db->fetchAll($select, __METHOD__);
 
-        $result = [];
 
-        foreach ($data as $item) {
-            $id = $item['id'];
-            $result[$id] = $item;
+        foreach ($posts as $post) {
+            $id = $post['id'];
+            $result[$id] = $post;
             $result[$id]['meta'] = array_filter($meta, function ($prop) use ($id) {
                 return $prop['post_id'] === $id ? $prop : null;
             });
