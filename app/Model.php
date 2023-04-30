@@ -49,13 +49,12 @@ class Model
         $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
         $posts = $db->fetchAll($select, __METHOD__);
 
-        $ids = implode(",", array_map(function ($item) {
-            return $item['id'];
+        $ids = implode(",", array_map(function ($post) {
+            return $post['id'];
         }, $posts));
 
         $select = "SELECT * FROM $this->metaTable WHERE `post_id` IN ('$ids')";
         $meta = $db->fetchAll($select, __METHOD__);
-
 
         foreach ($posts as $post) {
             $id = $post['id'];
