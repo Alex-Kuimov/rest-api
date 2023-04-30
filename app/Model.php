@@ -57,15 +57,20 @@ class Model
         }, $posts));
 
         $select = "SELECT `post_id`, `key`, `value` FROM $this->metaTable WHERE `post_id` IN ($ids)";
-        $meta = $db->fetchAll($select, __METHOD__);
+        $props = $db->fetchAll($select, __METHOD__);
 
         foreach ($posts as $post) {
             $id = $post['id'];
             $result[$id] = $post;
+            $meta = [];
 
-            $result[$id]['meta'] = array_filter($meta, function ($prop) use ($id) {
-                return $prop['post_id'] === $id ? $prop : null;
-            });
+            foreach ($props as $prop) {
+                if ($prop['post_id'] === $id) {
+                    $meta[$prop['key']] = $prop['value'];
+                }
+            }
+
+            $result[$id]['meta'] = $meta;
         }
 
         return $result;
@@ -84,7 +89,17 @@ class Model
         $data = $db->fetchOne($select, __METHOD__);
 
         $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$id'";
-        $meta = $db->fetchAll($select, __METHOD__);
+        $props = $db->fetchAll($select, __METHOD__);
+
+        $meta = [];
+
+        if (empty($props)) {
+            return [...$data, 'meta' => $meta];
+        }
+        
+        foreach ($props as $prop) {
+            $meta[$prop['key']] = $prop['value'];
+        }
 
         return [...$data, 'meta' => $meta];
     }
