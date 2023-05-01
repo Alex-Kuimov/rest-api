@@ -1,23 +1,23 @@
 <?php
 namespace App;
 
-class Post
+class User
 {
     private string $table;
     private string $metaTable;
     private ?int $id;
-    private ?string $type;
-    private ?string $name;
+    private ?string $login;
+    private ?string $pass;
     private ?array $props;
     private object $db;
 
     public function __construct($data)
     {
-        $this->table = 'posts';
-        $this->metaTable = 'postsmeta';
-        $this->type = $data['type'] ?? null;
+        $this->table = 'users';
+        $this->metaTable = 'usersmeta';
         $this->id = $data['content']['id'] ?? null;
-        $this->name = $data['content']['name'] ?? null;
+        $this->login = $data['content']['login'] ?? null;
+        $this->pass = $data['content']['pass'] ?? null;
         $this->props = $data['content']['meta'] ?? null;
         $this->db = Db::getInstance();
     }
@@ -29,7 +29,7 @@ class Post
      */
     public function get(): ?array
     {
-        $data = $this->id ? $this->getOne($this->db, $this->id) : $this->getAll($this->db, $this->type);
+        $data = $this->id ? $this->getOne($this->db, $this->id) : $this->getAll($this->db);
 
         if (!$data) {
             return null;
@@ -45,27 +45,27 @@ class Post
      * @param $type
      * @return array
      */
-    private function getAll($db, $type): array
+    private function getAll($db): array
     {
         $result = [];
 
-        $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
-        $posts = $db->fetchAll($select);
+        $select = "SELECT `id`, `login` FROM $this->table";
+        $users = $db->fetchAll($select);
 
-        $ids = implode(",", array_map(function ($post) {
-            return $post['id'];
-        }, $posts));
+        $ids = implode(",", array_map(function ($user) {
+            return $user['id'];
+        }, $users));
 
-        $select = "SELECT `post_id`, `key`, `value` FROM $this->metaTable WHERE `post_id` IN ($ids)";
+        $select = "SELECT `user_id`, `key`, `value` FROM $this->metaTable WHERE `user_id` IN ($ids)";
         $props = $db->fetchAll($select);
 
-        foreach ($posts as $post) {
+        foreach ($users as $post) {
             $id = $post['id'];
             $result[$id] = $post;
             $meta = [];
 
             foreach ($props as $prop) {
-                if ($prop['post_id'] === $id) {
+                if ($prop['user_id'] === $id) {
                     $meta[$prop['key']] = $prop['value'];
                 }
             }
@@ -85,14 +85,14 @@ class Post
      */
     private function getOne($db, $id): ?array
     {
-        $select = "SELECT * FROM $this->table WHERE `id` = '$id'";
+        $select = "SELECT `id`, `login` FROM $this->table WHERE `id` = '$id'";
         $data = $db->fetchOne($select);
 
         if (empty($data)) {
             return null;
         }
 
-        $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$id'";
+        $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `user_id` = '$id'";
         $props = $db->fetchAll($select);
 
         $meta = [];
@@ -115,11 +115,11 @@ class Post
      */
     public function create(): bool
     {
-        $insert = "INSERT INTO $this->table (`name`, `type`) VALUES (:name, :type)";
+        $insert = "INSERT INTO $this->table (`login`, `pass`) VALUES (:login, :pass)";
 
         $this->db->exec($insert, [
-            ':name' => $this->name,
-            ':type' => $this->type,
+            ':login' => $this->login,
+            ':pass' => md5($this->pass),
         ]);
 
         $id = intval($this->db->lastInsertId());
@@ -130,10 +130,10 @@ class Post
         }
 
         foreach ($this->props as $key => $value) {
-            $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
+            $insert = "INSERT INTO $this->metaTable (`user_id`, `key`, `value`) VALUES (:user_id, :key, :value)";
 
             $this->db->exec($insert, [
-                ':post_id' => $id ,
+                ':user_id' => $id ,
                 ':key' => $key,
                 ':value' => $value,
             ]);
@@ -150,10 +150,11 @@ class Post
      */
     public function update(): string
     {
-        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$this->id'";
+        $update = "UPDATE $this->table SET `login` = (:login), `pass` = (:pass) WHERE `id` = '$this->id'";
 
         $this->db->exec($update, [
-            ':name' => $this->name,
+            ':login' => $this->login,
+            ':pass' => md5($this->pass),
         ]);
 
         // updated without meta
@@ -162,20 +163,20 @@ class Post
         }
 
         foreach ($this->props as $key => $value) {
-            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$this->id' AND `key` = '$key'";
+            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `user_id` = '$this->id' AND `key` = '$key'";
             $meta = $this->db->fetchOne($select);
 
             if ($meta) {
-                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `post_id` = '$this->id' AND `key` = '$key'";
+                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `user_id` = '$this->id' AND `key` = '$key'";
 
                 $this->db->exec($update, [
                     ':value' => $value,
                 ]);
             } else {
-                $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
+                $insert = "INSERT INTO $this->metaTable (`user_id`, `key`, `value`) VALUES (:user_id, :key, :value)";
 
                 $this->db->exec($insert, [
-                    ':post_id' => $this->id ,
+                    ':user_id' => $this->id ,
                     ':key' => $key,
                     ':value' => $value,
                 ]);
@@ -193,7 +194,7 @@ class Post
      */
     public function delete(): bool
     {
-        $query = "DELETE FROM $this->metaTable WHERE `post_id` = '$this->id'";
+        $query = "DELETE FROM $this->metaTable WHERE `user_id` = '$this->id'";
         $this->db->exec($query);
 
         $query = "DELETE FROM $this->table WHERE `id` = '$this->id'";

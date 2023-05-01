@@ -24,7 +24,9 @@ class Response
         }
 
         if ($type === 'users') {
-            //
+            $user = new User($data);
+            $this->returnJSON($user->{$method}());
+            exit();
         }
 
         if ($type === 'groups') {
