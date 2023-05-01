@@ -9,17 +9,19 @@ class User
     private ?string $login;
     private ?string $pass;
     private ?array $props;
-    private object $db;
+    private object $query;
 
     public function __construct($data)
     {
         $this->table = 'users';
-        $this->metaTable = 'usersmeta';
+        $this->metaTable = $this->table . 'meta';
+
         $this->id = $data['content']['id'] ?? null;
         $this->login = $data['content']['login'] ?? null;
         $this->pass = $data['content']['pass'] ?? null;
         $this->props = $data['content']['meta'] ?? null;
-        $this->db = Db::getInstance();
+
+        $this->query = new Query;
     }
 
     /**
@@ -29,7 +31,7 @@ class User
      */
     public function get(): ?array
     {
-        $data = $this->id ? $this->getOne($this->db, $this->id) : $this->getAll($this->db);
+        $data = $this->id ? $this->getOne($this->id) : $this->getAll();
 
         if (!$data) {
             return null;
@@ -41,11 +43,9 @@ class User
     /**
      * Get list
      *
-     * @param $db
-     * @param $type
      * @return array
      */
-    private function getAll($db): array
+    private function getAll(): array
     {
         $result = [];
 
@@ -57,9 +57,9 @@ class User
 
         $props = $this->query->get($this->metaTable, ['user_id', 'key', 'value'], ['user_id' => $ids], true);
 
-        foreach ($users as $post) {
-            $id = $post['id'];
-            $result[$id] = $post;
+        foreach ($users as $user) {
+            $id = $user['id'];
+            $result[$id] = $user;
             $meta = [];
 
             foreach ($props as $prop) {
@@ -77,11 +77,10 @@ class User
     /**
      * Get one
      *
-     * @param $db
      * @param $id
      * @return array|null
      */
-    private function getOne($db, $id): ?array
+    private function getOne($id): ?array
     {
         $user = $this->query->get($this->table, ['id', 'login'], ['id' => $id]);
 
@@ -89,8 +88,7 @@ class User
             return null;
         }
 
-        $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `user_id` = '$id'";
-        $props = $db->fetchAll($select);
+        $props = $this->query->get($this->metaTable, ['key', 'value'], ['user_id' => $id]);
 
         $meta = [];
 
@@ -108,51 +106,46 @@ class User
     /**
      * Create
      *
-     * @return bool
+     * @return int
      */
-    public function create(): bool
+    public function create(): int
     {
-        $insert = "INSERT INTO $this->table (`login`, `pass`) VALUES (:login, :pass)";
-
-        $this->db->exec($insert, [
-            ':login' => $this->login,
-            ':pass' => md5($this->pass),
+        $id = $this->query->insert($this->table, [
+            'login' => $this->login,
+            'pass' => md5($this->pass),
         ]);
-
-        $id = intval($this->db->lastInsertId());
 
         // created without meta
         if (is_null($this->props)) {
-            return true;
+            return $id;
         }
 
         foreach ($this->props as $key => $value) {
-            $insert = "INSERT INTO $this->metaTable (`user_id`, `key`, `value`) VALUES (:user_id, :key, :value)";
-
-            $this->db->exec($insert, [
-                ':user_id' => $id ,
-                ':key' => $key,
-                ':value' => $value,
+            $this->query->insert($this->metaTable, [
+                'user_id' => $id ,
+                'key' => $key,
+                'value' => $value,
             ]);
         }
 
         // created with meta
-        return true;
+        return $id;
     }
 
     /**
      * Update
      *
-     * @return string
+     * @return bool
      */
-    public function update(): string
+    public function update(): bool
     {
-        $update = "UPDATE $this->table SET `login` = (:login), `pass` = (:pass) WHERE `id` = '$this->id'";
+        if ($this->login) {
+            $this->query->update($this->table, ['login' => $this->login], ['id' => $this->id]);
+        }
 
-        $this->db->exec($update, [
-            ':login' => $this->login,
-            ':pass' => md5($this->pass),
-        ]);
+        if ($this->pass) {
+            $this->query->update($this->table, ['pass' => $this->pass], ['id' => $this->id]);
+        }
 
         // updated without meta
         if (is_null($this->props)) {
@@ -160,22 +153,15 @@ class User
         }
 
         foreach ($this->props as $key => $value) {
-            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `user_id` = '$this->id' AND `key` = '$key'";
-            $meta = $this->db->fetchOne($select);
+            $meta = $this->query->get($this->metaTable, ['key', 'value'], ['user_id' => $this->id, 'key' => $key]);
 
             if ($meta) {
-                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `user_id` = '$this->id' AND `key` = '$key'";
-
-                $this->db->exec($update, [
-                    ':value' => $value,
-                ]);
+                $this->query->update($this->metaTable, ['value' => $value], ['user_id' => $this->id, 'key' => $key]);
             } else {
-                $insert = "INSERT INTO $this->metaTable (`user_id`, `key`, `value`) VALUES (:user_id, :key, :value)";
-
-                $this->db->exec($insert, [
-                    ':user_id' => $this->id ,
-                    ':key' => $key,
-                    ':value' => $value,
+                $this->query->insert($this->metaTable, [
+                    'user_id' => $this->id ,
+                    'key' => $key,
+                    'value' => $value,
                 ]);
             }
         }
@@ -191,11 +177,8 @@ class User
      */
     public function delete(): bool
     {
-        $query = "DELETE FROM $this->metaTable WHERE `user_id` = '$this->id'";
-        $this->db->exec($query);
-
-        $query = "DELETE FROM $this->table WHERE `id` = '$this->id'";
-        $this->db->exec($query);
+        $this->query->delete($this->metaTable, ['user_id' => $this->id]);
+        $this->query->delete($this->table, ['id' => $this->id]);
 
         return true;
     }

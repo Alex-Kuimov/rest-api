@@ -14,11 +14,13 @@ class Post
     public function __construct($data)
     {
         $this->table = 'posts';
-        $this->metaTable = 'postsmeta';
+        $this->metaTable = $this->table . 'meta';
+
         $this->type = $data['type'] ?? null;
         $this->id = $data['content']['id'] ?? null;
         $this->name = $data['content']['name'] ?? null;
         $this->props = $data['content']['meta'] ?? null;
+
         $this->query = new Query;
     }
 
@@ -106,9 +108,9 @@ class Post
     /**
      * Create
      *
-     * @return bool
+     * @return int
      */
-    public function create(): bool
+    public function create(): int
     {
         $id = $this->query->insert($this->table, [
             'name' => $this->name,
@@ -118,7 +120,7 @@ class Post
 
         // created without meta
         if (is_null($this->props)) {
-            return true;
+            return $id;
         }
 
         foreach ($this->props as $key => $value) {
@@ -130,13 +132,13 @@ class Post
         }
 
         // created with meta
-        return true;
+        return $id;
     }
 
     /**
      * Update
      *
-     * @return string
+     * @return bool
      */
     public function update(): bool
     {
