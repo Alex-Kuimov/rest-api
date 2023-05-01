@@ -18,39 +18,32 @@ class Dispatcher
     public function dispatch($data)
     {
         $method = $data['method'];
-        $type = $data['type'];
+        $route = $data['type'];
 
-        if (empty($type)) {
+        if (empty($route)) {
             $this->responce->JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
-            exit();
-        }
-
-        if ($type === 'login') {
-            $authUser = new Auth($data);
-            $this->responce->JSON($authUser->login());
-            exit();
         }
 
         if (empty($method)) {
             $this->responce->JSON('method err');
-            exit();
         }
 
-        if ($type === 'users') {
+        if ($route === 'login') {
+            $authUser = new Auth($data);
+            $this->responce->JSON($authUser->login());
+        }
+
+        if ($route === 'users') {
             $user = new User($data);
             $this->responce->JSON($user->{$method}());
-            exit();
         }
 
-        if ($type === 'groups') {
+        if ($route === 'groups') {
             //
         }
 
+        $post = new Post($data);
+        $this->responce->JSON($post->{$method}());
 
-        if ($type !== 'users') {
-            $post = new Post($data);
-            $this->responce->JSON($post->{$method}());
-            exit();
-        }
     }
 }
