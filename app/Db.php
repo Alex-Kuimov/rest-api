@@ -23,7 +23,7 @@ class Db
         return self::$instance;
     }
 
-    private function getConnection()
+    private function getConnection(): \PDO
     {
         $host = DB_HOST;
         $dbName = DB_NAME;
@@ -69,11 +69,9 @@ class Db
         $pdo = $this->getConnection();
         $prepared = $pdo->prepare($query);
         $prepared->execute($params);
-
-        return $prepared->rowCount();
     }
 
-    public function lastInsertId()
+    public function lastInsertId(): string
     {
         return $this->getConnection()->lastInsertId();
     }
