@@ -49,15 +49,13 @@ class User
     {
         $result = [];
 
-        $select = "SELECT `id`, `login` FROM $this->table";
-        $users = $db->fetchAll($select);
+        $users = $this->query->get($this->table, ['id', 'login'], null);
 
         $ids = implode(",", array_map(function ($user) {
             return $user['id'];
         }, $users));
 
-        $select = "SELECT `user_id`, `key`, `value` FROM $this->metaTable WHERE `user_id` IN ($ids)";
-        $props = $db->fetchAll($select);
+        $props = $this->query->get($this->metaTable, ['user_id', 'key', 'value'], ['user_id' => $ids], true);
 
         foreach ($users as $post) {
             $id = $post['id'];
@@ -85,10 +83,9 @@ class User
      */
     private function getOne($db, $id): ?array
     {
-        $select = "SELECT `id`, `login` FROM $this->table WHERE `id` = '$id'";
-        $data = $db->fetchOne($select);
+        $user = $this->query->get($this->table, ['id', 'login'], ['id' => $id]);
 
-        if (empty($data)) {
+        if (empty($user)) {
             return null;
         }
 
@@ -98,14 +95,14 @@ class User
         $meta = [];
 
         if (empty($props)) {
-            return [...$data, 'meta' => $meta];
+            return [...$user, 'meta' => $meta];
         }
 
         foreach ($props as $prop) {
             $meta[$prop['key']] = $prop['value'];
         }
 
-        return [...$data, 'meta' => $meta];
+        return [...$user, 'meta' => $meta];
     }
 
     /**

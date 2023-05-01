@@ -9,7 +9,7 @@ class Post
     private ?string $type;
     private ?string $name;
     private ?array $props;
-    private object $db;
+    private object $query;
 
     public function __construct($data)
     {
@@ -19,7 +19,7 @@ class Post
         $this->id = $data['content']['id'] ?? null;
         $this->name = $data['content']['name'] ?? null;
         $this->props = $data['content']['meta'] ?? null;
-        $this->db = Db::getInstance();
+        $this->query = new Query;
     }
 
     /**
@@ -29,7 +29,7 @@ class Post
      */
     public function get(): ?array
     {
-        $data = $this->id ? $this->getOne($this->db, $this->id) : $this->getAll($this->db, $this->type);
+        $data = $this->id ? $this->getOne($this->id) : $this->getAll($this->type);
 
         if (!$data) {
             return null;
@@ -41,23 +41,21 @@ class Post
     /**
      * Get list
      *
-     * @param $db
      * @param $type
      * @return array
      */
-    private function getAll($db, $type): array
+    private function getAll($type): array
     {
         $result = [];
 
-        $select = "SELECT * FROM $this->table WHERE `type` = '$type'";
-        $posts = $db->fetchAll($select);
+        $posts = $this->query->get($this->table, 'all', ['type' => $type]);
 
         $ids = implode(",", array_map(function ($post) {
             return $post['id'];
         }, $posts));
 
-        $select = "SELECT `post_id`, `key`, `value` FROM $this->metaTable WHERE `post_id` IN ($ids)";
-        $props = $db->fetchAll($select);
+
+        $props = $this->query->get($this->metaTable, ['post_id', 'key', 'value'], ['post_id' => $ids], true);
 
         foreach ($posts as $post) {
             $id = $post['id'];
@@ -79,33 +77,30 @@ class Post
     /**
      * Get one
      *
-     * @param $db
      * @param $id
      * @return array|null
      */
-    private function getOne($db, $id): ?array
+    private function getOne($id): ?array
     {
-        $select = "SELECT * FROM $this->table WHERE `id` = '$id'";
-        $data = $db->fetchOne($select);
+        $post = $this->query->get($this->table, 'all', ['id' => $id]);
 
-        if (empty($data)) {
+        if (empty($post)) {
             return null;
         }
 
-        $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$id'";
-        $props = $db->fetchAll($select);
+        $props = $this->query->get($this->metaTable, ['key', 'value'], ['id' => $id]);
 
         $meta = [];
 
         if (empty($props)) {
-            return [...$data, 'meta' => $meta];
+            return [...$post, 'meta' => $meta];
         }
 
         foreach ($props as $prop) {
             $meta[$prop['key']] = $prop['value'];
         }
 
-        return [...$data, 'meta' => $meta];
+        return [...$post, 'meta' => $meta];
     }
 
     /**
@@ -115,14 +110,11 @@ class Post
      */
     public function create(): bool
     {
-        $insert = "INSERT INTO $this->table (`name`, `type`) VALUES (:name, :type)";
-
-        $this->db->exec($insert, [
-            ':name' => $this->name,
-            ':type' => $this->type,
+        $id = $this->query->insert($this->table, [
+            'name' => $this->name,
+            'type' => $this->type,
+            'user_id' => 2,
         ]);
-
-        $id = intval($this->db->lastInsertId());
 
         // created without meta
         if (is_null($this->props)) {
@@ -130,12 +122,10 @@ class Post
         }
 
         foreach ($this->props as $key => $value) {
-            $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
-
-            $this->db->exec($insert, [
-                ':post_id' => $id ,
-                ':key' => $key,
-                ':value' => $value,
+            $this->query->insert($this->metaTable, [
+                'post_id' => $id ,
+                'key' => $key,
+                'value' => $value,
             ]);
         }
 
@@ -148,13 +138,9 @@ class Post
      *
      * @return string
      */
-    public function update(): string
+    public function update(): bool
     {
-        $update = "UPDATE $this->table SET `name` = (:name) WHERE `id` = '$this->id'";
-
-        $this->db->exec($update, [
-            ':name' => $this->name,
-        ]);
+        $this->query->update($this->table, ['name' => $this->name], ['id' => $this->id]);
 
         // updated without meta
         if (is_null($this->props)) {
@@ -162,22 +148,15 @@ class Post
         }
 
         foreach ($this->props as $key => $value) {
-            $select = "SELECT `key`, `value` FROM $this->metaTable WHERE `post_id` = '$this->id' AND `key` = '$key'";
-            $meta = $this->db->fetchOne($select);
+            $meta = $this->query->get($this->metaTable, ['post_id', 'key', 'value'], ['post_id' => $this->id, 'key' => $key]);
 
             if ($meta) {
-                $update = "UPDATE $this->metaTable SET `value` = (:value) WHERE `post_id` = '$this->id' AND `key` = '$key'";
-
-                $this->db->exec($update, [
-                    ':value' => $value,
-                ]);
+                $this->query->update($this->metaTable, ['value' => $value], ['post_id' => $this->id, 'key' => $key]);
             } else {
-                $insert = "INSERT INTO $this->metaTable (`post_id`, `key`, `value`) VALUES (:post_id, :key, :value)";
-
-                $this->db->exec($insert, [
-                    ':post_id' => $this->id ,
-                    ':key' => $key,
-                    ':value' => $value,
+                $this->query->insert($this->metaTable, [
+                    'post_id' => $this->id ,
+                    'key' => $key,
+                    'value' => $value,
                 ]);
             }
         }
@@ -193,11 +172,8 @@ class Post
      */
     public function delete(): bool
     {
-        $query = "DELETE FROM $this->metaTable WHERE `post_id` = '$this->id'";
-        $this->db->exec($query);
-
-        $query = "DELETE FROM $this->table WHERE `id` = '$this->id'";
-        $this->db->exec($query);
+        $this->query->delete($this->metaTable, ['post_id' => $this->id]);
+        $this->query->delete($this->table, ['id' => $this->id]);
 
         return true;
     }
