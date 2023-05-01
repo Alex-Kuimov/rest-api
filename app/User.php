@@ -182,4 +182,10 @@ class User
 
         return true;
     }
+
+    public function findByLogin($login): ?object
+    {
+        $res = $this->query->get($this->table, 'all', ['login' => $login]);
+        return !empty($res) ? (object) $res[0] : null;
+    }
 }

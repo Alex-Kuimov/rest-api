@@ -18,6 +18,12 @@ class Response
             exit();
         }
 
+        if ($type === 'login') {
+            $authUser = new Auth($data);
+            $this->returnJSON($authUser->login());
+            exit();
+        }
+
         if (empty($method)) {
             $this->returnJSON('method err');
             exit();
@@ -32,6 +38,7 @@ class Response
         if ($type === 'groups') {
             //
         }
+
 
         if ($type !== 'users') {
             $post = new Post($data);
