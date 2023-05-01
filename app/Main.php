@@ -3,13 +3,13 @@ namespace App;
 
 class Main
 {
-    private Route $route;
-    private Response $response;
+    private object $route;
+    private object $dispatcher;
 
     public function __construct()
     {
         $this->route = new Route();
-        $this->response = new Response();
+        $this->dispatcher = new Dispatcher();
     }
 
     /**
@@ -20,6 +20,6 @@ class Main
         $this->route->routing();
         $data = $this->route->getMeta();
 
-        $this->response->getJSON($data);
+        $this->dispatcher->dispatch($data);
     }
 }
