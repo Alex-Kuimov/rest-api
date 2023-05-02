@@ -1,12 +1,15 @@
 <?php
 namespace App;
 
+use JetBrains\PhpStorm\ArrayShape;
+use JetBrains\PhpStorm\Pure;
+
 class Route
 {
     private String $url;
     private Validator $validator;
 
-    public function __construct()
+    #[Pure] public function __construct()
     {
         $this->validator = new Validator();
     }
@@ -21,7 +24,7 @@ class Route
      *
      * @return array
      */
-    public function getMeta(): array
+    #[ArrayShape(['type' => "String", 'method' => "null|String", 'content' => "array"])] public function getMeta(): array
     {
         return [
             'type' => $this->getType($this->url),
@@ -47,7 +50,7 @@ class Route
      *
      * @return String|null
      */
-    private function getMethod(): ?String
+    #[Pure] private function getMethod(): ?String
     {
         $method = $_POST['method'] ?? null;
 

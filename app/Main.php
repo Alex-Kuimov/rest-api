@@ -1,6 +1,8 @@
 <?php
 namespace App;
 
+use JetBrains\PhpStorm\NoReturn;
+
 class Main
 {
     private object $route;
@@ -15,7 +17,7 @@ class Main
     /**
      * Run app
      */
-    public function makeMagic()
+    #[NoReturn] public function makeMagic()
     {
         $this->route->routing();
         $data = $this->route->getMeta();
