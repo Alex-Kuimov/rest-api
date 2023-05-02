@@ -9,6 +9,7 @@ class Post
     private ?string $type;
     private ?string $name;
     private ?array $props;
+    private ?int $userID;
     private object $query;
 
     public function __construct($data)
@@ -20,7 +21,7 @@ class Post
         $this->id = $data['content']['id'] ?? null;
         $this->name = $data['content']['name'] ?? null;
         $this->props = $data['content']['meta'] ?? null;
-
+        $this->userID = $data['user_id'] ?? null;
         $this->query = new Query;
     }
 
@@ -115,7 +116,8 @@ class Post
         $id = $this->query->insert($this->table, [
             'name' => $this->name,
             'type' => $this->type,
-            'user_id' => 2,
+            'user_id' => $this->userID,
+            'created_at' => date('Y-m-d H:i:s'),
         ]);
 
         // created without meta
@@ -142,7 +144,7 @@ class Post
      */
     public function update(): bool
     {
-        $this->query->update($this->table, ['name' => $this->name], ['id' => $this->id]);
+        $this->query->update($this->table, ['name' => $this->name, 'updated_at' => date('Y-m-d H:i:s')], ['id' => $this->id]);
 
         // updated without meta
         if (is_null($this->props)) {

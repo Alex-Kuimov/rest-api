@@ -5,6 +5,7 @@ class Guard
 {
     private object $query;
     private string $authTable;
+    public ?int $userID;
 
     public function __construct()
     {
@@ -39,6 +40,9 @@ class Guard
 
         $auth = $this->query->get($this->authTable, 'all', ['token' => $headerToken]);
         $token = !empty($auth) ? $auth[0]['token'] : null;
+
+        //if auth was ok we set user id
+        $this->userID = !empty($auth) ? $auth[0]['user_id'] : null;
 
         return $token === $headerToken;
     }

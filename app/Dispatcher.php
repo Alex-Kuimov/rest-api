@@ -36,20 +36,20 @@ class Dispatcher
             $this->response->JSONError('method error');
         }
 
-        //run guard
+        //run guard. Also guard set auth user id
         if (!$this->guard->monitor($route, $method)) {
             $this->response->JSONError('guard error');
         }
 
-        //if we use route of login or logout
+        //if we use reserved name of routes
         if (in_array($route, $reserved, true)) {
             $class = $this->getClassName($route);
             $instance = new $class($data);
             $this->response->JSON($instance->{$method}());
         }
 
-        //if we abstract name
-        $post = new Post($data);
+        //if we use abstract name in route. Example: tasks or articles
+        $post = new Post([...$data, 'user_id' => $this->guard->userID]);
         $this->response->JSON($post->{$method}());
     }
 
