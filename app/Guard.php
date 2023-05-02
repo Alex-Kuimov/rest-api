@@ -16,12 +16,9 @@ class Guard
     {
         $authMethod = ['login', 'logout'];
 
+        //auth methods
         if ($route === 'auth' && in_array($method, $authMethod, true)) {
             return true;
-        }
-
-        if (empty($method)) {
-            return false;
         }
 
         if ($this->isAuth()) {

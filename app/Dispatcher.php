@@ -1,6 +1,8 @@
 <?php
 namespace App;
 
+use JetBrains\PhpStorm\NoReturn;
+
 class Dispatcher
 {
     private object $response;
@@ -13,31 +15,40 @@ class Dispatcher
     }
 
     /**
-     * Dispatch
+     * Dispatch logic
      *
      * @param $data
      */
-    public function dispatch($data)
+    #[NoReturn] public function dispatch($data)
     {
         $reserved = ['users' , 'groups', 'auth'];
 
         $method = $data['method'] ?? null;
         $route = $data['type'] ?? null;
 
+        //home page
         if (empty($route)) {
             $this->response->JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
         }
 
-        if (!$this->guard->monitor($route, $method)) {
-            $this->response->JSON('err');
+        //if method empty
+        if (empty($method)) {
+            $this->response->JSONError('method error');
         }
 
+        //run guard
+        if (!$this->guard->monitor($route, $method)) {
+            $this->response->JSONError('guard error');
+        }
+
+        //if we use route of login or logout
         if (in_array($route, $reserved, true)) {
             $class = $this->getClassName($route);
             $instance = new $class($data);
             $this->response->JSON($instance->{$method}());
         }
 
+        //if we abstract name
         $post = new Post($data);
         $this->response->JSON($post->{$method}());
     }
