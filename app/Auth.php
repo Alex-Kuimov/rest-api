@@ -5,7 +5,7 @@ class Auth
 {
     private ?string $login;
     private ?string $pass;
-    private ?string $table;
+    private string $table;
     private object $user;
     private object $query;
 

@@ -3,11 +3,13 @@ namespace App;
 
 class Dispatcher
 {
-    private object $responce;
+    private object $response;
+    private object $guard;
 
     public function __construct()
     {
-        $this->responce = new Response();
+        $this->response = new Response();
+        $this->guard = new Guard();
     }
 
     /**
@@ -19,25 +21,25 @@ class Dispatcher
     {
         $reserved = ['users' , 'groups', 'auth'];
 
-        $method = $data['method'];
-        $route = $data['type'];
+        $method = $data['method'] ?? null;
+        $route = $data['type'] ?? null;
 
         if (empty($route)) {
-            $this->responce->JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
+            $this->response->JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
         }
 
-        if (empty($method)) {
-            $this->responce->JSON('method err');
+        if (!$this->guard->monitor($route, $method)) {
+            $this->response->JSON('err');
         }
 
         if (in_array($route, $reserved, true)) {
             $class = $this->getClassName($route);
             $instance = new $class($data);
-            $this->responce->JSON($instance->{$method}());
+            $this->response->JSON($instance->{$method}());
         }
 
         $post = new Post($data);
-        $this->responce->JSON($post->{$method}());
+        $this->response->JSON($post->{$method}());
     }
 
     private function getClassName($str):string
