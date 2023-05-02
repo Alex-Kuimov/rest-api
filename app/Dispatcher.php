@@ -17,6 +17,8 @@ class Dispatcher
      */
     public function dispatch($data)
     {
+        $reserved = ['users' , 'groups', 'auth'];
+
         $method = $data['method'];
         $route = $data['type'];
 
@@ -28,22 +30,22 @@ class Dispatcher
             $this->responce->JSON('method err');
         }
 
-        if ($route === 'login') {
-            $authUser = new Auth($data);
-            $this->responce->JSON($authUser->login());
-        }
-
-        if ($route === 'users') {
-            $user = new User($data);
-            $this->responce->JSON($user->{$method}());
-        }
-
-        if ($route === 'groups') {
-            //
+        if (in_array($route, $reserved, true)) {
+            $class = $this->getClassName($route);
+            $instance = new $class($data);
+            $this->responce->JSON($instance->{$method}());
         }
 
         $post = new Post($data);
         $this->responce->JSON($post->{$method}());
+    }
 
+    private function getClassName($str):string
+    {
+        if (substr($str, -1) === 's') {
+            $str = substr($str, 0, -1);
+        }
+
+        return 'App\\' . ucfirst($str);
     }
 }
