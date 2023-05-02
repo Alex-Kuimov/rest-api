@@ -34,13 +34,25 @@ class Auth
     {
         $token = $this->generateAuthToken();
 
-        $this->query->insert($this->table, [
-            'user_id' => $id,
-            'token' => $token,
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        $auth = $this->query->get($this->table, 'all', ['user_id' => $id]);
+        $now = date('Y-m-d H:i:s');
 
-        return $token;
+        if (!empty($auth)) {
+            $created = $auth[0]['created_at'];
+
+            if (strtotime($now) > strtotime($created)) {
+                $this->query->update($this->table, ['token' => $token], ['user_id' => $id]);
+                return $token;
+            }
+        } else {
+            $this->query->insert($this->table, [
+                'user_id' => $id,
+                'token' => $token,
+                'created_at' => $now,
+            ]);
+            return $token;
+        }
+        return $auth[0]['token'];
     }
 
     private function generateAuthToken($length = 20): string

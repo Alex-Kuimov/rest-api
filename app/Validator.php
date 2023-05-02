@@ -10,7 +10,7 @@ class Validator
      */
     public function availableMethods(): array
     {
-        return ['get', 'update', 'create', 'delete'];
+        return ['get', 'update', 'create', 'delete', 'login'];
     }
 
     /**
