@@ -16,9 +16,14 @@ class Guard
     public function monitor($route, $method):bool
     {
         $authMethod = ['login', 'logout'];
+        $regMethod = ['user', ];
 
         //auth methods
         if ($route === 'auth' && in_array($method, $authMethod, true)) {
+            return true;
+        }
+
+        if ($route === 'reg' && in_array($method, $regMethod, true)) {
             return true;
         }
 
