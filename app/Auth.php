@@ -23,6 +23,10 @@ class Auth
     {
         $user = $this->user->findByLogin($this->login);
 
+        if (!$user) {
+            return null;
+        }
+
         if ($user->pass === md5($this->pass)) {
             return $this->createToken($user->id);
         }

@@ -49,11 +49,13 @@ class Query
         $queryString = "UPDATE $table SET ";
 
         foreach ($props as $key => $value) {
-            $queryString .= "`$key` = (:$key)";
+            $queryString .= "`$key` = (:$key), ";
             $values[':'.$key] = $value;
         }
 
-        $queryString .= 'WHERE ';
+        $queryString = substr($queryString, 0, strlen($queryString) - 2);
+
+        $queryString .= ' WHERE ';
 
         foreach ($where as $key => $value) {
             $queryString .= "`$key` = '$value' AND ";

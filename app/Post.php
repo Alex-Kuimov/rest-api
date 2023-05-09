@@ -144,7 +144,7 @@ class Post
      */
     public function update(): bool
     {
-        $this->query->update($this->table, ['name' => $this->name, 'updated_at' => date('Y-m-d H:i:s')], ['id' => $this->id]);
+        $this->query->update($this->table, ['name' => $this->name, 'updated_at' => date('Y-m-d H:i:s') ], ['id' => $this->id]);
 
         // updated without meta
         if (is_null($this->props)) {
