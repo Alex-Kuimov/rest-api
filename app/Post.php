@@ -47,11 +47,15 @@ class Post
      * @param $type
      * @return array
      */
-    private function getAll($type): array
+    private function getAll($type): ?array
     {
         $result = [];
 
         $posts = $this->query->get($this->table, 'all', ['type' => $type]);
+
+        if (empty($posts)) {
+            return null;
+        }
 
         $ids = implode(",", array_map(function ($post) {
             return $post['id'];
