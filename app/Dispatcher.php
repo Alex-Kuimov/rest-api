@@ -21,7 +21,7 @@ class Dispatcher
      */
     #[NoReturn] public function dispatch($data)
     {
-        $reserved = ['users' , 'groups', 'auth', 'reg'];
+        $reserved = ['users' , 'groups', 'auth', 'reg', 'options'];
 
         $method = $data['method'] ?? null;
         $route = $data['type'] ?? null;
