@@ -49,7 +49,14 @@ class Option
             return null;
         }
 
-        return $options;
+        $result = [];
+
+        foreach ($options as $option) {
+            $id = $option['id'];
+            $result[$id] = $option;
+        }
+
+        return $result;
     }
 
     /**

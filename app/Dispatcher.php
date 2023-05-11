@@ -47,12 +47,7 @@ class Dispatcher
             $instance = new $class($data);
 
             $result = $instance->{$method}();
-
-            if ($result) {
-                $this->response->JSON($result);
-            }
-
-            $this->response->JSONError('empty result');
+            $this->response->JSON($result);
         }
 
         //if we use abstract name in route. Example: tasks or articles
