@@ -1,27 +1,22 @@
 <?php
 namespace App;
 
-class User
+class User extends Model
 {
     private string $table;
     private string $metaTable;
-    private ?int $id;
     private ?string $login;
     private ?string $pass;
-    private ?array $props;
-    private object $query;
 
     public function __construct($data)
     {
+        $this->initDefault($data);
+
         $this->table = 'users';
         $this->metaTable = $this->table . 'meta';
 
-        $this->id = $data['content']['id'] ?? null;
         $this->login = $data['content']['login'] ?? null;
         $this->pass = $data['content']['pass'] ?? null;
-        $this->props = $data['content']['meta'] ?? null;
-
-        $this->query = new Query;
     }
 
     /**
@@ -47,8 +42,6 @@ class User
      */
     private function getAll(): array
     {
-        $result = [];
-
         $users = $this->query->get($this->table, ['id', 'login'], null);
 
         $ids = implode(",", array_map(function ($user) {
@@ -57,21 +50,7 @@ class User
 
         $props = $this->query->get($this->metaTable, ['user_id', 'key', 'value'], ['user_id' => $ids], true);
 
-        foreach ($users as $user) {
-            $id = $user['id'];
-            $result[$id] = $user;
-            $meta = [];
-
-            foreach ($props as $prop) {
-                if ($prop['user_id'] === $id) {
-                    $meta[$prop['key']] = $prop['value'];
-                }
-            }
-
-            $result[$id]['meta'] = $meta;
-        }
-
-        return $result;
+        return $this->withMeta($users, $props, 'user_id');
     }
 
     /**
@@ -82,25 +61,15 @@ class User
      */
     private function getOne($id): ?array
     {
-        $user = $this->query->get($this->table, ['id', 'login'], ['id' => $id]);
+        $users = $this->query->get($this->table, ['id', 'login'], ['id' => $id]);
 
-        if (empty($user)) {
+        if (empty($users)) {
             return null;
         }
 
         $props = $this->query->get($this->metaTable, ['key', 'value'], ['user_id' => $id]);
 
-        $meta = [];
-
-        if (empty($props)) {
-            return [...$user, 'meta' => $meta];
-        }
-
-        foreach ($props as $prop) {
-            $meta[$prop['key']] = $prop['value'];
-        }
-
-        return [...$user, 'meta' => $meta];
+        return $this->withMeta($users, $props, 'user_id');
     }
 
     /**

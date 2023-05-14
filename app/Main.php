@@ -13,7 +13,7 @@ class Main
     {
         $this->route = new Route();
         $this->dispatcher = new Dispatcher();
-        $this->plugins =  new Plugins();
+        $this->plugins = new Plugins();
     }
 
     /**
@@ -21,8 +21,8 @@ class Main
      */
     #[NoReturn] public function makeMagic()
     {
-        //require_once '../plugins/telegram/index.php';
         $this->plugins->init();
+
         $this->route->routing();
         $data = $this->route->getMeta();
 

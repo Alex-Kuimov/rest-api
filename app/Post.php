@@ -1,28 +1,24 @@
 <?php
 namespace App;
 
-class Post
+class Post extends Model
 {
     private string $table;
     private string $metaTable;
-    private ?int $id;
     private ?string $type;
     private ?string $name;
-    private ?array $props;
     private ?int $userID;
-    private object $query;
 
     public function __construct($data)
     {
+        $this->initDefault($data);
+
         $this->table = 'posts';
         $this->metaTable = $this->table . 'meta';
 
         $this->type = $data['type'] ?? null;
-        $this->id = $data['content']['id'] ?? null;
         $this->name = $data['content']['name'] ?? null;
-        $this->props = $data['content']['meta'] ?? null;
         $this->userID = $data['user_id'] ?? null;
-        $this->query = new Query;
     }
 
     /**
@@ -49,8 +45,6 @@ class Post
      */
     private function getAll($type): ?array
     {
-        $result = [];
-
         $posts = $this->query->get($this->table, 'all', ['type' => $type]);
 
         if (empty($posts)) {
@@ -64,21 +58,7 @@ class Post
 
         $props = $this->query->get($this->metaTable, ['post_id', 'key', 'value'], ['post_id' => $ids], true);
 
-        foreach ($posts as $post) {
-            $id = $post['id'];
-            $result[$id] = $post;
-            $meta = [];
-
-            foreach ($props as $prop) {
-                if ($prop['post_id'] === $id) {
-                    $meta[$prop['key']] = $prop['value'];
-                }
-            }
-
-            $result[$id]['meta'] = $meta;
-        }
-
-        return $result;
+        return $this->withMeta($posts, $props, 'post_id');
     }
 
     /**
@@ -89,25 +69,15 @@ class Post
      */
     private function getOne($id): ?array
     {
-        $post = $this->query->get($this->table, 'all', ['id' => $id]);
+        $posts = $this->query->get($this->table, 'all', ['id' => $id]);
 
-        if (empty($post)) {
+        if (empty($posts)) {
             return null;
         }
 
         $props = $this->query->get($this->metaTable, ['key', 'value'], ['id' => $id]);
 
-        $meta = [];
-
-        if (empty($props)) {
-            return [...$post, 'meta' => $meta];
-        }
-
-        foreach ($props as $prop) {
-            $meta[$prop['key']] = $prop['value'];
-        }
-
-        return [...$post, 'meta' => $meta];
+        return $this->withMeta($posts, $props, 'post_id');
     }
 
     /**
@@ -185,4 +155,5 @@ class Post
 
         return true;
     }
+
 }

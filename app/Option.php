@@ -1,22 +1,21 @@
 <?php
 namespace App;
 
-class Option
+class Option extends Model
 {
     private string $table;
-    private ?int $id;
     private ?string $name;
     private ?string $value;
-    private object $query;
 
     public function __construct($data)
     {
+        $this->initDefault($data);
+
         $this->table = 'options';
 
         $this->id = $data['content']['id'] ?? null;
         $this->name = $data['content']['name'] ?? null;
         $this->value = $data['content']['value'] ?? null;
-        $this->query = new Query;
     }
 
     /**
