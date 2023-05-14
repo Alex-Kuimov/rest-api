@@ -21,10 +21,12 @@ class Dispatcher
      */
     #[NoReturn] public function dispatch($data)
     {
-        $reserved = ['users' , 'groups', 'auth', 'reg', 'options'];
+        $auth = ['auth', 'reg'];
+        $system = ['users', 'options'];
 
         $method = $data['method'] ?? null;
         $route = $data['type'] ?? null;
+        $itemID = $data['content']['id'] ?? null;
 
         //home page
         if (empty($route)) {
@@ -36,19 +38,21 @@ class Dispatcher
             $this->response->JSONError('method error');
         }
 
+        //auth reserved routes
+        $this->reservedRoutes($route, $method, $auth, $data);
+
         //run guard. Also guard set auth user id
-        if (!$this->guard->monitor($route, $method)) {
+        if (!$this->guard->auth($route, $method)) {
             $this->response->JSONError('guard error');
         }
 
-        //if we use reserved name of routes
-        if (in_array($route, $reserved, true)) {
-            $class = $this->getClassName($route);
-            $instance = new $class($data);
-
-            $result = $instance->{$method}();
-            $this->response->JSON($result);
+        //check access
+        if (!$this->guard->access($route, $method, $itemID)) {
+            $this->response->JSONError('access denied');
         }
+
+        //system reserved routes
+        $this->reservedRoutes($route, $method, $system, $data);
 
         //if we use abstract name in route. Example: tasks or articles
         $post = new Post([...$data, 'user_id' => $this->guard->userID]);
@@ -62,5 +66,16 @@ class Dispatcher
         }
 
         return 'App\\' . ucfirst($str);
+    }
+
+    private function reservedRoutes($route, $method, $reserved, $data)
+    {
+        if (in_array($route, $reserved, true)) {
+            $class = $this->getClassName($route);
+            $instance = new $class($data);
+
+            $result = $instance->{$method}();
+            $this->response->JSON($result);
+        }
     }
 }
