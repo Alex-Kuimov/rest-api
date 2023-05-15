@@ -17,7 +17,7 @@ class Guard
         $this->query = new Query;
     }
 
-    public function auth($route, $method):bool
+    public function auth():bool
     {
         return $this->isAuth();
     }
@@ -36,18 +36,18 @@ class Guard
             return false;
         }
 
-        if ($this->systemEdit($role, $route)) {
+        if ($this->deniedSystemEdit($role, $route)) {
             return false;
         }
 
-        if ($this->postEdit($role, $method, $postID)) {
+        if ($this->deniedPostEdit($role, $method, $postID)) {
             return false;
         }
 
         return true;
     }
 
-    private function systemEdit($role, $route): bool
+    private function deniedSystemEdit($role, $route): bool
     {
         $routes = ['options', 'users'];
         $roles = ['editor', 'subscriber'];
@@ -59,7 +59,7 @@ class Guard
         return false;
     }
 
-    private function postEdit($role, $method, $itemID): bool
+    private function deniedPostEdit($role, $method, $itemID): bool
     {
         $roles = ['editor'];
         $methods = ['get', 'create', 'update', 'delete'];

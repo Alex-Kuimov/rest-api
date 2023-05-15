@@ -42,7 +42,7 @@ class Dispatcher
         $this->reservedRoutes($route, $method, $auth, $data);
 
         //run guard. Also guard set auth user id
-        if (!$this->guard->auth($route, $method)) {
+        if (!$this->guard->auth()) {
             $this->response->JSONError('guard error');
         }
 
