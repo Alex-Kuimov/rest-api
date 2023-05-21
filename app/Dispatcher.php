@@ -5,12 +5,10 @@ use JetBrains\PhpStorm\NoReturn;
 
 class Dispatcher
 {
-    private object $response;
     private object $guard;
 
     public function __construct()
     {
-        $this->response = new Response();
         $this->guard = new Guard();
     }
 
@@ -30,12 +28,12 @@ class Dispatcher
 
         //home page
         if (empty($route)) {
-            $this->response->JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
+            Response::JSON(APP_NAME . ' app. Author: ' . APP_AUTHOR . '. Ver: ' . APP_VER);
         }
 
         //if method empty
         if (empty($method)) {
-            $this->response->JSONError('method error');
+            Response::JSONError('Method error!');
         }
 
         //auth reserved routes
@@ -43,12 +41,12 @@ class Dispatcher
 
         //run guard. Also guard set auth user id
         if (!$this->guard->auth()) {
-            $this->response->JSONError('guard error');
+            Response::JSONError('guard error');
         }
 
         //check access
         if (!$this->guard->access($route, $method, $itemID)) {
-            $this->response->JSONError('access denied');
+            Response::JSONError('access denied');
         }
 
         //system reserved routes
@@ -56,7 +54,7 @@ class Dispatcher
 
         //if we use abstract name in route. Example: tasks or articles
         $post = new Post([...$data, 'user_id' => $this->guard->userID]);
-        $this->response->JSON($post->{$method}());
+        Response::JSON($post->{$method}());
     }
 
     private function getClassName($str):string
@@ -75,7 +73,7 @@ class Dispatcher
             $instance = new $class($data);
 
             $result = $instance->{$method}();
-            $this->response->JSON($result);
+            Response::JSON($result);
         }
     }
 }
