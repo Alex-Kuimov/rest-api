@@ -2,6 +2,7 @@
 namespace App;
 
 use JetBrains\PhpStorm\NoReturn;
+use App\Controller\PostController as Post;
 
 class Dispatcher
 {
@@ -41,12 +42,12 @@ class Dispatcher
 
         //run guard. Also guard set auth user id
         if (!$this->guard->auth()) {
-            Response::JSONError('guard error');
+            Response::JSONError('Guard error');
         }
 
         //check access
         if (!$this->guard->access($route, $method, $itemID)) {
-            Response::JSONError('access denied');
+            Response::JSONError('Access denied');
         }
 
         //system reserved routes
